@@ -11,6 +11,7 @@ django-cors-headers==4.9.0
 djangorestframework==3.16.1
 executing==2.2.1
 filelock==3.20.1
+gunicorn==26.0.0
 ipykernel==7.1.0
 ipython==9.10.0
 ipython_pygments_lexers==1.1.1
@@ -40,9 +41,4 @@ traitlets==5.14.3
 tzdata==2025.3
 virtualenv==20.35.4
 wcwidth==0.5.3
-Django
-gunicorn
-whitenoise
-dj-database-url
-psycopg2-binary
-python-dotenv
+whitenoise==6.12.0

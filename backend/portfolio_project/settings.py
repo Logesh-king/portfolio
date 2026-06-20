@@ -22,7 +22,7 @@ DEBUG = os.getenv(
     'False'
 ).lower() in ('true', '1', 'yes')
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
+ALLOWED_HOSTS = ['devworldofml.onrender.com','localhost','127.0.0.1',]
 
 # Application definition
 INSTALLED_APPS = [
@@ -127,12 +127,11 @@ if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
 else:
     CORS_ALLOW_ALL_ORIGINS = False
-    CORS_ALLOWED_ORIGINS = [origin.strip() for origin in os.environ.get('CORS_ALLOWED_ORIGINS', 'http://localhost:5173').split(',')]
-
+    CORS_ALLOWED_ORIGINS = ['https://portfolio-webdevofml.vercel.app',]
 CORS_ALLOW_CREDENTIALS = True
 
 # CSRF configuration for production deployments
-CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in os.environ.get('CSRF_TRUSTED_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173').split(',')]
+CSRF_TRUSTED_ORIGINS = [ 'https://devworldofml.onrender.com','https://portfolio-webdevofml.vercel.app',]
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
