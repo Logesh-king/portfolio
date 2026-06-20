@@ -1,0 +1,56 @@
+/* ----- DESIGN SYSTEM VARIABLES ----- */
+:root {
+  /* Fonts */
+  --font-sans: 'Poppins', sans-serif;
+  --font-title: 'Montserrat', sans-serif;
+  --font-sci-fi: 'Montserrat', sans-serif;
+
+  /* Colors */
+  --bg-dark: #000000;
+  --bg-card: rgba(255, 255, 255, 0.03);
+  --bg-card-hover: rgba(255, 255, 255, 0.06);
+  --bg-nav: rgba(10, 10, 10, 0.5);
+  --bg-nav-scrolled: rgba(10, 10, 10, 0.82);
+  --bg-contact-inner: rgba(8, 10, 18, 0.82);
+  --bg-featured-inner: rgba(12, 16, 28, 0.95);
+  --bg-featured-inner-hover: rgba(16, 22, 38, 0.95);
+  
+  /* Accent Neon Colors */
+  --neon-blue: #00B7FF;
+  --neon-blue-glow: rgba(0, 183, 255, 0.4);
+  --neon-blue-glow-light: rgba(0, 183, 255, 0.08);
+  --neon-purple: #7a4bff;
+  --neon-purple-glow: rgba(122, 75, 255, 0.3);
+  --neon-purple-glow-light: rgba(122, 75, 255, 0.08);
+  --neon-cyan: #00B7FF; /* Aliased for compatibility with existing classes */
+  
+  /* Text Colors */
+  --text-white: #ffffff;
+  --text-primary: #ffffff;
+  --text-secondary: #ddd;
+  --text-muted: #b0ccee;
+  --text-dark-muted: #888;
+  --text-darker-muted: #666;
+  --text-label: #555;
+  
+  /* Borders & Shadows */
+  --border-light: rgba(255, 255, 255, 0.08);
+  --border-active: rgba(0, 183, 255, 0.4);
+  --border-featured: conic-gradient(from 0deg, transparent 40%, #00B7FF, #7a4bff, #00B7FF, transparent 95%);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  
+  /* Status Colors */
+  --status-success-bg: rgba(0, 255, 128, 0.08);
+  --status-success-border: rgba(0, 255, 128, 0.3);
+  --status-success-text: #00ff80;
+  
+  --status-pending-bg: rgba(255, 170, 0, 0.08);
+  --status-pending-border: rgba(255, 170, 0, 0.3);
+  --status-pending-text: #ffaa00;
+
+  /* Animation & Transition Timings */
+  --transition-bezier: cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-smooth: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-fast: all 0.3s ease;
+}
