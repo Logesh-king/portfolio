@@ -25,16 +25,25 @@ class IsAdminOrReadOnly(permissions.BasePermission):
 class CustomAuthToken(ObtainAuthToken):
     """
     Custom authentication token view to provide detailed error messages
-    and return user info along with the token.
+    and return user info along with the token. Supports email login.
     """
     def post(self, request, *args, **kwargs):
-        serializer = self.serializer_class(data=request.data, context={'request': request})
+        from django.contrib.auth.models import User
+        data = request.data.copy()
+        username_or_email = data.get('username')
+        if username_or_email and '@' in username_or_email:
+            # Look up user by email
+            user = User.objects.filter(email=username_or_email).first()
+            if user:
+                data['username'] = user.username
+
+        serializer = self.serializer_class(data=data, context={'request': request})
         try:
             serializer.is_valid(raise_exception=True)
         except ValidationError as e:
             print("Validation Error:", e.detail)
             return Response(
-                {"error": "Invalid username or password. Please try again."},
+                {"error": "Invalid username/email or password. Please try again."},
                 status=status.HTTP_400_BAD_REQUEST
             )
             
@@ -145,7 +154,7 @@ class ContactMessageViewSet(viewsets.ModelViewSet):
             f"--------------------------------------------------\n"
         )
         
-        recipient_email = "ml69455737@gmail.com"
+        recipient_email = "mllogesh2003@gmail.com"
         from_email = getattr(settings, 'EMAIL_HOST_USER', '') or 'noreply@portfolio.com'
         
         try:

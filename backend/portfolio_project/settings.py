@@ -127,11 +127,25 @@ if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
 else:
     CORS_ALLOW_ALL_ORIGINS = False
-    CORS_ALLOWED_ORIGINS = ['https://portfolio-webdevofml.vercel.app',]
+    CORS_ALLOWED_ORIGINS = [
+        'https://portfolio-webdevofml.vercel.app',
+        'http://localhost:5173',
+        'http://127.0.0.1:5173',
+    ]
 CORS_ALLOW_CREDENTIALS = True
 
 # CSRF configuration for production deployments
-CSRF_TRUSTED_ORIGINS = [ 'https://devworldofml.onrender.com','https://portfolio-webdevofml.vercel.app',]
+CSRF_TRUSTED_ORIGINS = [ 
+    'https://devworldofml.onrender.com',
+    'https://portfolio-webdevofml.vercel.app',
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+]
+
+# Secure Cookies for production
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
