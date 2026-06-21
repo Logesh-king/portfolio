@@ -134,12 +134,28 @@ export default function Contact() {
     }
   };
 
+  const getCooldown = () => {
+    try {
+      return localStorage.getItem('last_contact_submit');
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const setCooldown = () => {
+    try {
+      localStorage.setItem('last_contact_submit', Date.now().toString());
+    } catch (e) {
+      // Ignore security exceptions for localStorage in iframe/private browsing
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (status === 'sending' || status === 'sent') return;
 
     // Frontend rate limiting check (30 seconds cooldown)
-    const lastSubmit = localStorage.getItem('last_contact_submit');
+    const lastSubmit = getCooldown();
     if (lastSubmit && Date.now() - parseInt(lastSubmit) < 30000) {
       const remaining = Math.ceil((30000 - (Date.now() - parseInt(lastSubmit))) / 1000);
       showToast(`Please wait ${remaining}s before sending another message.`, 'error');
@@ -161,7 +177,7 @@ export default function Contact() {
 
       setStatus('sent');
       setFormData({ name: '', email: '', subject: '', message: '', website: '' });
-      localStorage.setItem('last_contact_submit', Date.now().toString());
+      setCooldown();
       showToast('Message sent successfully! I will get back to you soon.', 'success');
 
       // Reset button feedback status after 3.5 seconds
@@ -179,12 +195,13 @@ export default function Contact() {
   };
 
   return (
-    <section
-      id="contact"
-      ref={sectionRef}
-      className={isActive ? 'contact-active' : ''}
-      aria-label="Contact Information"
-    >
+    <>
+      <section
+        id="contact"
+        ref={sectionRef}
+        className={isActive ? 'contact-active' : ''}
+        aria-label="Contact Information"
+      >
       <div className="contact-spotlight contact-spotlight-center" aria-hidden="true"></div>
       <div className="contact-spotlight contact-spotlight-1" aria-hidden="true"></div>
       <div className="contact-spotlight contact-spotlight-2" aria-hidden="true"></div>
@@ -333,7 +350,7 @@ export default function Contact() {
               {/* Submit Button */}
               <button
                 type="submit"
-                className={`btn-contact-send ${status === 'sending' ? 'sending' : ''} ${status === 'sent' ? 'sent' : ''}`}
+                className={`btn-contact-send ${status === 'sending' ? 'sending' : ''} ${status === 'sent' ? 'sent' : ''} ${status === 'error' ? 'error' : ''}`}
                 id="contactSendBtn"
                 aria-label="Submit message form"
                 disabled={status === 'sending'}
@@ -452,6 +469,8 @@ export default function Contact() {
         </div>
       </div>
 
+    </section>
+
       {/* Floating glassmorphic toast notification */}
       {toast.show && (
         <div className={`contact-toast ${toast.type}`} role="alert">
@@ -461,6 +480,6 @@ export default function Contact() {
           </div>
         </div>
       )}
-    </section>
+    </>
   );
 }

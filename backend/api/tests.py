@@ -73,7 +73,7 @@ class PortfolioAPITests(APITestCase):
         self.assertEqual(len(response.data), 1)
 
     def test_submit_contact_message(self):
-        url = reverse('contacts-list')
+        url = reverse('contact-list')
         data = {
             "name": "Jane Doe",
             "email": "jane@example.com",
@@ -86,7 +86,7 @@ class PortfolioAPITests(APITestCase):
 
     def test_submit_contact_message_spam_honeypot(self):
         # Submitting honeypot website field should return success but not save to DB
-        url = reverse('contacts-list')
+        url = reverse('contact-list')
         data = {
             "name": "Spam Bot",
             "email": "bot@spammer.com",
@@ -100,14 +100,14 @@ class PortfolioAPITests(APITestCase):
 
     def test_get_contacts_unauthorized(self):
         # Normal public user should not be able to list contact messages
-        url = reverse('contacts-list')
+        url = reverse('contact-list')
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_get_contacts_authorized(self):
         # Authenticated admin user should be able to list contact messages
         self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.admin_token.key)
-        url = reverse('contacts-list')
+        url = reverse('contact-list')
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.client.credentials() # Reset credentials

@@ -43,10 +43,10 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware', # CORS middleware must go at the top
     'django.middleware.security.SecurityMiddleware',    
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'corsheaders.middleware.CorsMiddleware', # CORS middleware goes here
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -131,14 +131,26 @@ if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
 else:
     CORS_ALLOW_ALL_ORIGINS = False
-    CORS_ALLOWED_ORIGINS = ["https://portfolio-one-tan-3apgkimyui.vercel.app",]
+    env_origins = os.getenv('CORS_ALLOWED_ORIGINS', '')
+    if env_origins:
+        CORS_ALLOWED_ORIGINS = [origin.strip() for origin in env_origins.split(',') if origin.strip()]
+    else:
+        CORS_ALLOWED_ORIGINS = [
+            "https://portfolio-one-tan-3apgkimyui.vercel.app",
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+        ]
 CORS_ALLOW_CREDENTIALS = True
 
 # CSRF configuration for production deployments
-CSRF_TRUSTED_ORIGINS = [ 
-    'https://devworldofml.onrender.com',
-    "https://portfolio-one-tan-3apgkimyui.vercel.app",
-]
+env_csrf = os.getenv('CSRF_TRUSTED_ORIGINS', '')
+if env_csrf:
+    CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in env_csrf.split(',') if origin.strip()]
+else:
+    CSRF_TRUSTED_ORIGINS = [ 
+        'https://devworldofml.onrender.com',
+        "https://portfolio-one-tan-3apgkimyui.vercel.app",
+    ]
 
 
 # Secure Cookies for production
@@ -163,7 +175,7 @@ if DEBUG and not EMAIL_HOST_USER:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # Force SSL in production (Render) for PostgreSQL if not already present
-if not DEBUG and DATABASES.get('default', {}).get('ENGINE') == 'django.db.backends.postgresql':
+if not DEBUG and DATABASES.get('default', {}).get('ENGINE', '').startswith('django.db.backends.postgresql'):
     DATABASES['default'].setdefault('OPTIONS', {})['sslmode'] = 'require'
 
 # Logging configuration

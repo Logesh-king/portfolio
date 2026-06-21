@@ -118,7 +118,8 @@ function MainApp() {
   const [activeSection, setActiveSection] = useState('home');
   const location = useLocation();
 
-  const baseUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+  const rawBaseUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+  const baseUrl = rawBaseUrl.endsWith('/') ? rawBaseUrl.slice(0, -1) : rawBaseUrl;
 
   useEffect(() => {
     const fetchPortfolioData = async () => {
