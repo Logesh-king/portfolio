@@ -43,7 +43,8 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
+    'django.middleware.security.SecurityMiddleware',    
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware', # CORS middleware goes here
     'django.middleware.common.CommonMiddleware',
@@ -105,8 +106,11 @@ USE_I18N = True
 USE_TZ = True
 
 # Static & Media Files configuration
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_STORAGE = (
+    'whitenoise.storage.CompressedManifestStaticFilesStorage'
+)
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
@@ -128,19 +132,18 @@ if DEBUG:
 else:
     CORS_ALLOW_ALL_ORIGINS = False
     CORS_ALLOWED_ORIGINS = [
-        'https://portfolio-webdevofml.vercel.app',
-        'http://localhost:5173',
-        'http://127.0.0.1:5173',
-    ]
+    "https://portfolio-rfnv3v0vc-webdevofml.vercel.app",
+    "https://portfolio-one-tan-3apgkimyui.vercel.app",
+]
 CORS_ALLOW_CREDENTIALS = True
 
 # CSRF configuration for production deployments
 CSRF_TRUSTED_ORIGINS = [ 
     'https://devworldofml.onrender.com',
-    'https://portfolio-webdevofml.vercel.app',
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
+    "https://portfolio-rfnv3v0vc-webdevofml.vercel.app",
+    "https://portfolio-one-tan-3apgkimyui.vercel.app",
 ]
+
 
 # Secure Cookies for production
 if not DEBUG:
@@ -171,36 +174,30 @@ if not DEBUG and DATABASES.get('default', {}).get('ENGINE') == 'django.db.backen
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+
     'formatters': {
-        'verbose': {
-            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
-            'style': '{',
-        },
         'simple': {
             'format': '{levelname} {asctime} {message}',
             'style': '{',
         },
     },
+
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
         },
-        'file': {
-            'level': 'WARNING',
-            'class': 'logging.FileHandler',
-            'filename': BASE_DIR / 'django.log',
-            'formatter': 'verbose',
-        },
     },
+
     'loggers': {
         'django': {
-            'handlers': ['console', 'file'],
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': True,
         },
+
         'api': {
-            'handlers': ['console', 'file'],
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': True,
         },
