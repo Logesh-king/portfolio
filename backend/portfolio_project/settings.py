@@ -131,16 +131,12 @@ if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
 else:
     CORS_ALLOW_ALL_ORIGINS = False
-    CORS_ALLOWED_ORIGINS = [
-    "https://portfolio-rfnv3v0vc-webdevofml.vercel.app",
-    "https://portfolio-one-tan-3apgkimyui.vercel.app",
-]
+    CORS_ALLOWED_ORIGINS = ["https://portfolio-one-tan-3apgkimyui.vercel.app",]
 CORS_ALLOW_CREDENTIALS = True
 
 # CSRF configuration for production deployments
 CSRF_TRUSTED_ORIGINS = [ 
     'https://devworldofml.onrender.com',
-    "https://portfolio-rfnv3v0vc-webdevofml.vercel.app",
     "https://portfolio-one-tan-3apgkimyui.vercel.app",
 ]
 

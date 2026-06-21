@@ -74,7 +74,7 @@ export default function AdminDashboard() {
       setEducation(eduRes.data);
 
       if (token) {
-        const msgRes = await axios.get(`${baseUrl}/api/contacts/`, getAuthHeaders());
+        const msgRes = await axios.get(`${baseUrl}/api/contact/`, getAuthHeaders());
         setMessages(msgRes.data);
       }
     } catch (err) {
@@ -180,7 +180,7 @@ export default function AdminDashboard() {
     if (!window.confirm("Are you sure you want to delete this message?")) return;
     setIsLoading(true);
     try {
-      await axios.delete(`${baseUrl}/api/contacts/${id}/`, getAuthHeaders());
+      await axios.delete(`${baseUrl}/api/contact/${id}/`, getAuthHeaders());
       showFeedback("Message logs cleared.", "success");
       fetchData();
     } catch (err) {
@@ -194,7 +194,7 @@ export default function AdminDashboard() {
   const handleToggleMessageRead = async (id, currentStatus) => {
     setIsLoading(true);
     try {
-      await axios.patch(`${baseUrl}/api/contacts/${id}/`, { is_read: !currentStatus }, getAuthHeaders());
+      await axios.patch(`${baseUrl}/api/contact/${id}/`, { is_read: !currentStatus }, getAuthHeaders());
       showFeedback(`Message marked as ${!currentStatus ? 'read' : 'unread'}.`, "success");
       fetchData();
     } catch (err) {
@@ -210,7 +210,7 @@ export default function AdminDashboard() {
     setShowMsgModal(true);
     if (!msg.is_read) {
       try {
-        await axios.patch(`${baseUrl}/api/contacts/${msg.id}/`, { is_read: true }, getAuthHeaders());
+        await axios.patch(`${baseUrl}/api/contact/${msg.id}/`, { is_read: true }, getAuthHeaders());
         setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, is_read: true } : m));
       } catch (err) {
         console.error("Failed to mark message as read:", err);

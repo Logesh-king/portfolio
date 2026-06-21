@@ -157,12 +157,12 @@ export default function Contact() {
       // Connect to Django endpoint
       const rawBaseUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
       const baseUrl = rawBaseUrl.endsWith('/') ? rawBaseUrl.slice(0, -1) : rawBaseUrl;
-      await axios.post(`${baseUrl}/api/contacts/`, formData);
+      await axios.post(`${baseUrl}/api/contact/`, formData);
 
       setStatus('sent');
       setFormData({ name: '', email: '', subject: '', message: '', website: '' });
       localStorage.setItem('last_contact_submit', Date.now().toString());
-      showToast('Message sent successfully!', 'success');
+      showToast('Message sent successfully! I will get back to you soon.', 'success');
 
       // Reset button feedback status after 3.5 seconds
       setTimeout(() => {

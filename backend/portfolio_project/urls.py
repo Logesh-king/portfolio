@@ -1,8 +1,15 @@
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
+from django.http import JsonResponse
 from django.conf.urls.static import static
 from api.views import CustomAuthToken
+
+def home(request):
+    return JsonResponse({
+        "status": "success",
+        "message": "Portfolio Backend API Running"
+    })
 
 urlpatterns = [
     path('admin/', admin.site.urls),
