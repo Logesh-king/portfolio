@@ -133,6 +133,7 @@ class ContactMessageViewSet(viewsets.ModelViewSet):
         from django.core.mail import send_mail
         from django.conf import settings
         import logging
+        import threading
         
         logger = logging.getLogger(__name__)
         logger.info(f"ContactMessage successfully saved in database for sender: {instance.email}")
@@ -154,18 +155,26 @@ class ContactMessageViewSet(viewsets.ModelViewSet):
             f"--------------------------------------------------\n"
         )
         
-        recipient_email = "mllogesh2003@gmail.com"
+        recipient_email = "ml69455737@gmail.com"
         from_email = getattr(settings, 'EMAIL_HOST_USER', '') or 'noreply@portfolio.com'
         
-        try:
-            send_mail(
-                subject=email_subject,
-                message=email_body,
-                from_email=from_email,
-                recipient_list=[recipient_email],
-                fail_silently=False,
-            )
-            logger.info(f"Successfully sent contact email to {recipient_email} from {instance.email}")
-        except Exception as e:
-            # Log the error, but do not fail the REST API request since the entry is saved
-            logger.error(f"Failed to send email to {recipient_email} for message ID {instance.id}: {e}")
+        def send_email_async(subject, message, sender, recipients):
+            try:
+                send_mail(
+                    subject=subject,
+                    message=message,
+                    from_email=sender,
+                    recipient_list=recipients,
+                    fail_silently=False,
+                )
+                logger.info(f"Successfully sent contact email to {recipients} in background thread.")
+            except Exception as e:
+                logger.error(f"Failed to send email to {recipients} in background thread: {e}")
+
+        # Start background thread to avoid blocking HTTP response
+        email_thread = threading.Thread(
+            target=send_email_async,
+            args=(email_subject, email_body, from_email, [recipient_email])
+        )
+        email_thread.daemon = True
+        email_thread.start()
