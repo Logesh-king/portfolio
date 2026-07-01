@@ -154,7 +154,7 @@ class ContactMessageViewSet(viewsets.ModelViewSet):
             f"--------------------------------------------------\n"
         )
         
-        recipient_email = os.environ.get('RECIPIENT_EMAIL', 'mllogesh2003@gmail.com')
+        recipient_email = os.environ.get('RECIPIENT_EMAIL', 'ml69455737@gmail.com')
         from_email = getattr(settings, 'EMAIL_HOST_USER', '') or 'noreply@portfolio.com'
         
         try:
