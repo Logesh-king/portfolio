@@ -187,7 +187,24 @@ export default function Contact() {
     } catch (err) {
       console.error("Error submitting contact form:", err);
       setStatus('error');
-      showToast('Failed to send message. Please try again.', 'error');
+      
+      let errorMsg = 'Failed to send message. Please try again.';
+      if (err.response && err.response.data) {
+        if (err.response.data.detail) {
+          errorMsg = err.response.data.detail;
+        } else if (err.response.data.error) {
+          errorMsg = err.response.data.error;
+        } else if (typeof err.response.data === 'object') {
+          const keys = Object.keys(err.response.data);
+          if (keys.length > 0) {
+            const firstKey = keys[0];
+            const firstVal = err.response.data[firstKey];
+            errorMsg = Array.isArray(firstVal) ? `${firstKey}: ${firstVal[0]}` : `${firstKey}: ${firstVal}`;
+          }
+        }
+      }
+      
+      showToast(errorMsg, 'error');
       setTimeout(() => {
         setStatus('idle');
       }, 3500);

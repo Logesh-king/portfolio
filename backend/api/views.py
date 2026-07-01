@@ -115,7 +115,6 @@ class ContactMessageViewSet(viewsets.ModelViewSet):
         # Honeypot spam check: bots will autofill hidden fields like 'website'
         honeypot = request.data.get('website', '')
         if honeypot:
-            # Silently ignore spam submission and return success status code
             import logging
             logger = logging.getLogger(__name__)
             logger.warning(f"Spam submission blocked. Honeypot value: '{honeypot}'")
@@ -123,9 +122,9 @@ class ContactMessageViewSet(viewsets.ModelViewSet):
                 {"detail": "Message sent successfully!", "spam_blocked": True},
                 status=status.HTTP_201_CREATED
             )
-        return super().create(request, *args, **kwargs)
-
-    def perform_create(self, serializer):
+        
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         instance = serializer.save()
         
         # Get submission details and configure email
@@ -133,7 +132,7 @@ class ContactMessageViewSet(viewsets.ModelViewSet):
         from django.core.mail import send_mail
         from django.conf import settings
         import logging
-        import threading
+        import os
         
         logger = logging.getLogger(__name__)
         logger.info(f"ContactMessage successfully saved in database for sender: {instance.email}")
@@ -155,26 +154,28 @@ class ContactMessageViewSet(viewsets.ModelViewSet):
             f"--------------------------------------------------\n"
         )
         
-        recipient_email = "ml69455737@gmail.com"
+        recipient_email = os.environ.get('RECIPIENT_EMAIL', 'mllogesh2003@gmail.com')
         from_email = getattr(settings, 'EMAIL_HOST_USER', '') or 'noreply@portfolio.com'
         
-        def send_email_async(subject, message, sender, recipients):
-            try:
-                send_mail(
-                    subject=subject,
-                    message=message,
-                    from_email=sender,
-                    recipient_list=recipients,
-                    fail_silently=False,
-                )
-                logger.info(f"Successfully sent contact email to {recipients} in background thread.")
-            except Exception as e:
-                logger.error(f"Failed to send email to {recipients} in background thread: {e}")
-
-        # Start background thread to avoid blocking HTTP response
-        email_thread = threading.Thread(
-            target=send_email_async,
-            args=(email_subject, email_body, from_email, [recipient_email])
-        )
-        email_thread.daemon = True
-        email_thread.start()
+        try:
+            send_mail(
+                subject=email_subject,
+                message=email_body,
+                from_email=from_email,
+                recipient_list=[recipient_email],
+                fail_silently=False,
+            )
+            logger.info(f"Successfully sent contact email to {recipient_email} from {instance.email}")
+            
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        except Exception as e:
+            logger.error(f"Failed to send email to {recipient_email} for message ID {instance.id}: {e}", exc_info=True)
+            # Return detailed error response to frontend
+            return Response(
+                {
+                    "error": "Email sending failed",
+                    "detail": f"Failed to send email to {recipient_email}: {str(e)}"
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
