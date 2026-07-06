@@ -162,14 +162,18 @@ class ContactMessageViewSet(viewsets.ModelViewSet):
             f"Date & Time:  {submission_time}\n\n"
             f"Message:\n{instance.message}\n"
         )
-        recipient_email = os.environ.get('RECIPIENT_EMAIL', 'ml69455737@gmail.com')
-
+        recipient_email = os.environ.get(
+            "RECIPIENT_EMAIL",
+            settings.EMAIL_HOST_USER
+        )
+        logger.info(f"Sending email from: {settings.DEFAULT_FROM_EMAIL}")
+        logger.info(f"Sending email to: {recipient_email}")
         try:
             send_mail(
                 subject=email_subject,
                 message=email_body,
                 from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[recipient_email],
+                recipient_list=[settings.RECIPIENT_EMAIL] if hasattr(settings, "RECIPIENT_EMAIL") else [recipient_email],
                 fail_silently=False,
             )
             logger.info(f"Notification email sent to {recipient_email}")
