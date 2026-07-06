@@ -1,21 +1,22 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
-from rest_framework.decorators import action
 from .models import AboutInfo, Skill, Project, Education, ContactMessage
 from .serializers import (
     AboutInfoSerializer, SkillSerializer, ProjectSerializer,
     EducationSerializer, ContactMessageSerializer
 )
+from rest_framework.decorators import action
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
 from rest_framework.exceptions import ValidationError
-from rest_framework.authentication import TokenAuthentication
+from rest_framework.authentication import TokenAuthentication, SessionAuthentication
+import logging
+import os
+
+logger = logging.getLogger(__name__)
+
 
 class IsAdminOrReadOnly(permissions.BasePermission):
-    """
-    Custom permission to only allow admin users to edit objects.
-    GET requests are allowed for anyone.
-    """
     def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:
             return True
@@ -23,16 +24,11 @@ class IsAdminOrReadOnly(permissions.BasePermission):
 
 
 class CustomAuthToken(ObtainAuthToken):
-    """
-    Custom authentication token view to provide detailed error messages
-    and return user info along with the token. Supports email login.
-    """
     def post(self, request, *args, **kwargs):
         from django.contrib.auth.models import User
         data = request.data.copy()
         username_or_email = data.get('username')
         if username_or_email and '@' in username_or_email:
-            # Look up user by email
             user = User.objects.filter(email=username_or_email).first()
             if user:
                 data['username'] = user.username
@@ -41,12 +37,12 @@ class CustomAuthToken(ObtainAuthToken):
         try:
             serializer.is_valid(raise_exception=True)
         except ValidationError as e:
-            print("Validation Error:", e.detail)
+            logger.warning(f"Auth validation error: {e.detail}")
             return Response(
                 {"error": "Invalid username/email or password. Please try again."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-            
+
         user = serializer.validated_data['user']
         token, created = Token.objects.get_or_create(user=user)
         return Response({
@@ -59,14 +55,12 @@ class CustomAuthToken(ObtainAuthToken):
 
 class ContactMessagePermission(permissions.BasePermission):
     """
-    Custom permission for contact form submission.
-    POST requests (submitting messages) are public.
-    GET and DELETE requests (reading and clearing messages) require admin login.
+    POST (submit) is public. GET/PATCH/DELETE (inbox management) require staff.
     """
     def has_permission(self, request, view):
         if request.method == 'POST':
             return True
-        return request.user and request.user.is_staff
+        return bool(request.user and request.user.is_staff)
 
 
 class AboutInfoViewSet(viewsets.ModelViewSet):
@@ -74,14 +68,13 @@ class AboutInfoViewSet(viewsets.ModelViewSet):
     serializer_class = AboutInfoSerializer
     permission_classes = [IsAdminOrReadOnly]
 
-    # Helper method to get the singleton AboutInfo or create one if it doesn't exist
     def list(self, request, *args, **kwargs):
         about = AboutInfo.objects.first()
         if not about:
             about = AboutInfo.objects.create(
                 full_name="Logesh M",
                 heading="I AM AVAILABLE FOR FULL STACK DEVELOPMENT",
-                bio="Hi, I'm Logesh M. A passionate Full Stack Developer dedicated to creating visually appealing, accessible, and high-performance web applications."
+                bio="Hi, I'm Logesh M. A passionate Full Stack Developer..."
             )
         serializer = self.get_serializer(about)
         return Response(serializer.data)
@@ -109,73 +102,85 @@ class ContactMessageViewSet(viewsets.ModelViewSet):
     queryset = ContactMessage.objects.all().order_by('-created_at')
     serializer_class = ContactMessageSerializer
     permission_classes = [ContactMessagePermission]
-    authentication_classes = [TokenAuthentication]
+    # Allow BOTH token auth (API clients) and session auth (admin dashboard
+    # logged in via Django session/browser). Token-only was likely blocking
+    # your admin dashboard from ever authenticating to view the inbox.
+    authentication_classes = [TokenAuthentication, SessionAuthentication]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        search = self.request.query_params.get('search')
+        if search:
+            from django.db.models import Q
+            qs = qs.filter(
+                Q(name__icontains=search) |
+                Q(email__icontains=search) |
+                Q(subject__icontains=search) |
+                Q(message__icontains=search)
+            )
+        is_read = self.request.query_params.get('is_read')
+        if is_read is not None:
+            qs = qs.filter(is_read=is_read.lower() == 'true')
+        return qs
 
     def create(self, request, *args, **kwargs):
-        # Honeypot spam check: bots will autofill hidden fields like 'website'
+        # Honeypot spam check
         honeypot = request.data.get('website', '')
         if honeypot:
-            import logging
-            logger = logging.getLogger(__name__)
             logger.warning(f"Spam submission blocked. Honeypot value: '{honeypot}'")
             return Response(
-                {"detail": "Message sent successfully!", "spam_blocked": True},
+                {"message": "Message sent successfully!", "spam_blocked": True},
                 status=status.HTTP_201_CREATED
             )
-        
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         instance = serializer.save()
-        
-        # Get submission details and configure email
+        logger.info(f"ContactMessage saved (id={instance.id}) from {instance.email}")
+
+        self._send_notification_email(instance)
+
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            {"message": "Message sent successfully.", "data": serializer.data},
+            status=status.HTTP_201_CREATED,
+            headers=headers,
+        )
+
+    def _send_notification_email(self, instance):
         from django.utils import timezone
         from django.core.mail import send_mail
         from django.conf import settings
-        import logging
-        import os
-        
-        logger = logging.getLogger(__name__)
-        logger.info(f"ContactMessage successfully saved in database for sender: {instance.email}")
-        
+
         submission_time = timezone.now().strftime("%Y-%m-%d %H:%M:%S UTC")
         email_subject = f"Portfolio Contact: {instance.subject}"
         email_body = (
             f"You have received a new contact form submission from your portfolio.\n\n"
-            f"Sender Details:\n"
-            f"--------------------------------------------------\n"
             f"Name:         {instance.name}\n"
             f"Email:        {instance.email}\n"
             f"Subject:      {instance.subject}\n"
-            f"Date & Time:  {submission_time}\n"
-            f"--------------------------------------------------\n\n"
-            f"Message:\n"
-            f"--------------------------------------------------\n"
-            f"{instance.message}\n"
-            f"--------------------------------------------------\n"
+            f"Date & Time:  {submission_time}\n\n"
+            f"Message:\n{instance.message}\n"
         )
-        
         recipient_email = os.environ.get('RECIPIENT_EMAIL', 'ml69455737@gmail.com')
-        from_email = getattr(settings, 'EMAIL_HOST_USER', '') or 'noreply@portfolio.com'
-        
+
         try:
             send_mail(
                 subject=email_subject,
                 message=email_body,
-                from_email=from_email,
+                from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[recipient_email],
                 fail_silently=False,
             )
-            logger.info(f"Successfully sent contact email to {recipient_email} from {instance.email}")
-            
-            headers = self.get_success_headers(serializer.data)
-            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+            logger.info(f"Notification email sent to {recipient_email}")
         except Exception as e:
-            logger.error(f"Failed to send email to {recipient_email} for message ID {instance.id}: {e}", exc_info=True)
-            # Return detailed error response to frontend
-            return Response(
-                {
-                    "error": "Email sending failed",
-                    "detail": f"Failed to send email to {recipient_email}: {str(e)}"
-                },
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            # Never let email failure break the API response — the message
+            # is already saved. Log it so you can see WHY in Render logs.
+            logger.exception(f"Email sending failed: {e}")
+
+    @action(detail=True, methods=['patch'], permission_classes=[ContactMessagePermission])
+    def toggle_read(self, request, pk=None):
+        msg = self.get_object()
+        msg.is_read = not msg.is_read
+        msg.save(update_fields=['is_read'])
+        return Response(ContactMessageSerializer(msg).data)     

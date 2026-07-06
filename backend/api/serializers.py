@@ -27,7 +27,8 @@ class EducationSerializer(serializers.ModelSerializer):
 
 
 class ContactMessageSerializer(serializers.ModelSerializer):
+    message = serializers.CharField(min_length=10)
     class Meta:
         model = ContactMessage
         fields = '__all__'
-        read_only_fields = ['id', 'created_at']
+        read_only_fields = ['id', 'created_at', 'is_read']
