@@ -13,6 +13,7 @@ from rest_framework.authentication import TokenAuthentication, SessionAuthentica
 import logging
 import os
 import threading
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -140,9 +141,7 @@ class ContactMessageViewSet(viewsets.ModelViewSet):
         logger.info(f"ContactMessage saved (id={instance.id}) from {instance.email}")
 
         threading.Thread(
-        target=self._send_notification_email,
-        args=(instance,),
-        daemon=True,
+            target=self._send_notification_email, args=(instance,), daemon=True
         ).start()
 
         return Response(
@@ -155,42 +154,40 @@ class ContactMessageViewSet(viewsets.ModelViewSet):
 
     def _send_notification_email(self, instance):
         from django.utils import timezone
-        from django.core.mail import send_mail
         from django.conf import settings
 
         submission_time = timezone.now().strftime("%Y-%m-%d %H:%M:%S UTC")
-        email_subject = f"Portfolio Contact: {instance.subject}"
-        email_body = (
-            f"You have received a new contact form submission from your portfolio.\n\n"
-            f"Name:         {instance.name}\n"
-            f"Email:        {instance.email}\n"
-            f"Subject:      {instance.subject}\n"
-            f"Date & Time:  {submission_time}\n\n"
-            f"Message:\n{instance.message}\n"
-        )
-        recipient_email = os.environ.get(
-            "RECIPIENT_EMAIL",
-            settings.EMAIL_HOST_USER
-        )
-        logger.info(f"Sending email from: {settings.DEFAULT_FROM_EMAIL}")
-        logger.info(f"Sending email to: {recipient_email}")
-        try:
-            send_mail(
-                subject=email_subject,
-                message=email_body,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[settings.RECIPIENT_EMAIL] if hasattr(settings, "RECIPIENT_EMAIL") else [recipient_email],
-                fail_silently=False,
-            )
-            logger.info(f"Notification email sent to {recipient_email}")
-        except Exception as e:
-            # Never let email failure break the API response — the message
-            # is already saved. Log it so you can see WHY in Render logs.
-            logger.exception(f"Email sending failed: {e}")
+        recipient_email = os.environ.get('RECIPIENT_EMAIL', 'ml69455737@gmail.com')
+        api_key = getattr(settings, 'BREVO_API_KEY', None)
 
-    @action(detail=True, methods=['patch'], permission_classes=[ContactMessagePermission])
-    def toggle_read(self, request, pk=None):
-        msg = self.get_object()
-        msg.is_read = not msg.is_read
-        msg.save(update_fields=['is_read'])
-        return Response(ContactMessageSerializer(msg).data)     
+        if not api_key:
+            logger.error("BREVO_API_KEY not set — cannot send notification email.")
+            return
+
+        html_content = (
+            f"<h3>New Portfolio Contact Submission</h3>"
+            f"<p><b>Name:</b> {instance.name}</p>"
+            f"<p><b>Email:</b> {instance.email}</p>"
+            f"<p><b>Subject:</b> {instance.subject}</p>"
+            f"<p><b>Date &amp; Time:</b> {submission_time}</p>"
+            f"<p><b>Message:</b><br>{instance.message}</p>"
+        )
+        payload = {
+            "sender": {"name": "Portfolio Contact Form", "email": settings.EMAIL_HOST_USER},
+            "to": [{"email": recipient_email}],
+            "replyTo": {"email": instance.email, "name": instance.name},
+            "subject": f"Portfolio Contact: {instance.subject}",
+            "htmlContent": html_content,
+        }
+
+        try:
+            resp = requests.post(
+                "https://api.brevo.com/v3/smtp/email",
+                json=payload,
+                headers={"api-key": api_key, "Content-Type": "application/json"},
+                timeout=10,  # fail fast — never hang the worker again
+            )
+            resp.raise_for_status()
+            logger.info(f"Notification email sent via Brevo to {recipient_email}")
+        except Exception as e:
+            logger.exception(f"Email sending failed: {e}")
