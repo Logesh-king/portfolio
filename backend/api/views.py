@@ -12,6 +12,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.authentication import TokenAuthentication, SessionAuthentication
 import logging
 import os
+import threading
 
 logger = logging.getLogger(__name__)
 
@@ -138,13 +139,18 @@ class ContactMessageViewSet(viewsets.ModelViewSet):
         instance = serializer.save()
         logger.info(f"ContactMessage saved (id={instance.id}) from {instance.email}")
 
-        self._send_notification_email(instance)
+        threading.Thread(
+        target=self._send_notification_email,
+        args=(instance,),
+        daemon=True,
+        ).start()
 
-        headers = self.get_success_headers(serializer.data)
         return Response(
-            {"message": "Message sent successfully.", "data": serializer.data},
+            {
+                "message": "Message sent successfully.",
+                "data": serializer.data,
+            },
             status=status.HTTP_201_CREATED,
-            headers=headers,
         )
 
     def _send_notification_email(self, instance):
