@@ -3,6 +3,21 @@ import axios from 'axios';
 const rawBaseUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 export const baseUrl = rawBaseUrl.endsWith('/') ? rawBaseUrl.slice(0, -1) : rawBaseUrl;
 
+export const getImageUrl = (path) => {
+  if (!path) return null;
+  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
+    return path;
+  }
+  let cleanPath = path;
+  if (!cleanPath.startsWith('/')) {
+    cleanPath = '/' + cleanPath;
+  }
+  if (!cleanPath.startsWith('/media/')) {
+    cleanPath = '/media' + cleanPath;
+  }
+  return `${baseUrl}${cleanPath}`;
+};
+
 export const fetchAboutInfo = async () => {
   try {
     const res = await axios.get(`${baseUrl}/api/about/`);

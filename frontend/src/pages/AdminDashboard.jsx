@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { fallbackProfileImage, fallbackProjectImage } from '../utils/placeholders';
+import { getImageUrl } from '../services/api';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('about');
@@ -9,6 +11,13 @@ export default function AdminDashboard() {
   const [projects, setProjects] = useState([]);
   const [education, setEducation] = useState([]);
   const [messages, setMessages] = useState([]);
+  
+  // Image Upload States
+  const [profileImageFile, setProfileImageFile] = useState(null);
+  const [clearProfileImage, setClearProfileImage] = useState(false);
+  const [projectImageFile, setProjectImageFile] = useState(null);
+  const [clearProjectImage, setClearProjectImage] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   
   // Search, filter and messaging states
   const [searchQuery, setSearchQuery] = useState('');
@@ -108,21 +117,54 @@ export default function AdminDashboard() {
   const handleAboutUpdate = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+    setUploadProgress(1);
     try {
       const endpoint = `${baseUrl}/api/about/${aboutData.id || 1}/`;
-      await axios.put(endpoint, aboutData, getAuthHeaders());
+      
+      const formData = new FormData();
+      formData.append('full_name', aboutData.full_name || '');
+      formData.append('heading', aboutData.heading || '');
+      formData.append('bio', aboutData.bio || '');
+      formData.append('projects_completed', aboutData.projects_completed || 0);
+      formData.append('years_experience', aboutData.years_experience || 0);
+      formData.append('passion_percentage', aboutData.passion_percentage || 0);
+      
+      if (profileImageFile) {
+        formData.append('profile_image', profileImageFile);
+      } else if (clearProfileImage) {
+        formData.append('clear_profile_image', 'true');
+      }
+
+      const config = {
+        headers: { 
+          Authorization: `Token ${token}`,
+          'Content-Type': 'multipart/form-data'
+        },
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          setUploadProgress(percentCompleted);
+        }
+      };
+
+      const res = await axios.put(endpoint, formData, config);
+      setAboutData(res.data);
+      setProfileImageFile(null);
+      setClearProfileImage(false);
       showFeedback("About Me information updated successfully!", "success");
     } catch (err) {
       console.error("About save error:", err);
       showFeedback("Error saving About info.", "error");
     } finally {
       setIsLoading(false);
+      setUploadProgress(0);
     }
   };
 
   // GENERIC CRUD LOGIC
   const openModal = (tab, item = null) => {
     setEditId(item ? item.id : null);
+    setProjectImageFile(null);
+    setClearProjectImage(false);
     if (tab === 'skills') {
       setSkillForm(item || { name: '', category: 'Outer', level: 80, icon_class: 'fab fa-react', icon_color: '#61dafb', angle: 0, radius: 155, description: '' });
     } else if (tab === 'projects') {
@@ -136,19 +178,54 @@ export default function AdminDashboard() {
   const handleCrudSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+    setUploadProgress(1);
     try {
       let endpoint = `${baseUrl}/api/${activeTab}/`;
-      let payload = {};
       
-      if (activeTab === 'skills') payload = skillForm;
-      if (activeTab === 'projects') payload = projectForm;
-      if (activeTab === 'education') payload = educationForm;
+      let payload;
+      let config = getAuthHeaders();
+
+      if (activeTab === 'projects') {
+        const formData = new FormData();
+        formData.append('title', projectForm.title || '');
+        formData.append('description', projectForm.description || '');
+        formData.append('tags', projectForm.tags || '');
+        formData.append('status', projectForm.status || 'Completed');
+        formData.append('features', projectForm.features || '');
+        formData.append('techs_used', projectForm.techs_used || '');
+        formData.append('live_url', projectForm.live_url || '');
+        formData.append('github_url', projectForm.github_url || '');
+        formData.append('is_featured', projectForm.is_featured ? 'true' : 'false');
+        formData.append('order', projectForm.order || 0);
+
+        if (projectImageFile) {
+          formData.append('image', projectImageFile);
+        } else if (clearProjectImage) {
+          formData.append('clear_image', 'true');
+        }
+
+        payload = formData;
+        config = {
+          headers: {
+            ...getAuthHeaders().headers,
+            'Content-Type': 'multipart/form-data'
+          },
+          onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setUploadProgress(percentCompleted);
+          }
+        };
+      } else {
+        if (activeTab === 'skills') payload = skillForm;
+        if (activeTab === 'projects') payload = projectForm;
+        if (activeTab === 'education') payload = educationForm;
+      }
 
       if (editId) {
-        await axios.put(`${endpoint}${editId}/`, payload, getAuthHeaders());
+        await axios.put(`${endpoint}${editId}/`, payload, config);
         showFeedback("Database entry updated successfully!", "success");
       } else {
-        await axios.post(endpoint, payload, getAuthHeaders());
+        await axios.post(endpoint, payload, config);
         showFeedback("New entry created successfully!", "success");
       }
       setShowModal(false);
@@ -158,6 +235,7 @@ export default function AdminDashboard() {
       showFeedback("Error processing request. Check inputs.", "error");
     } finally {
       setIsLoading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -254,6 +332,57 @@ export default function AdminDashboard() {
 
   return (
     <div className="admin-dashboard-container">
+      {/* CSS style tag for keyframe animations and upload zone styling */}
+      <style>{`
+        .admin-drag-drop-zone {
+          border: 1px dashed rgba(255, 255, 255, 0.15);
+          background: rgba(255, 255, 255, 0.01);
+          transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .admin-drag-drop-zone.drag-active {
+          border-color: var(--neon-blue) !important;
+          background: rgba(0, 183, 255, 0.08) !important;
+          box-shadow: 0 0 15px rgba(0, 183, 255, 0.2);
+          transform: scale(1.01);
+        }
+        .admin-drag-drop-zone.has-error {
+          border-color: #ff4a4a !important;
+          background: rgba(255, 74, 74, 0.08) !important;
+          box-shadow: 0 0 15px rgba(255, 74, 74, 0.2);
+        }
+        .admin-file-input {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          opacity: 0;
+          cursor: pointer;
+          z-index: 10;
+        }
+      `}</style>
+
+      {/* Upload progress banner */}
+      {uploadProgress > 0 && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '4px',
+          background: 'rgba(255,255,255,0.05)',
+          zIndex: 9999
+        }}>
+          <div style={{
+            width: `${uploadProgress}%`,
+            height: '100%',
+            background: 'linear-gradient(90deg, var(--neon-blue), var(--neon-purple))',
+            boxShadow: '0 0 8px var(--neon-blue)',
+            transition: 'width 0.1s ease'
+          }} />
+        </div>
+      )}
+
       {/* Toast Alert Popups */}
       {feedback.message && (
         <div className="admin-toast-container">
@@ -468,6 +597,22 @@ export default function AdminDashboard() {
                         value={aboutData.passion_percentage} 
                         onChange={e => setAboutData({...aboutData, passion_percentage: parseInt(e.target.value) || 0})} 
                         required 
+                      />
+                    </div>
+
+                    <div className="admin-input-group admin-form-full">
+                      <ImageUploadZone
+                        currentImageUrl={clearProfileImage ? null : getImageUrl(aboutData.profile_image)}
+                        onFileSelected={(file) => {
+                          setProfileImageFile(file);
+                          setClearProfileImage(false);
+                        }}
+                        onClear={() => {
+                          setProfileImageFile(null);
+                          setClearProfileImage(true);
+                        }}
+                        fallbackImage={fallbackProfileImage}
+                        label="Profile Photo"
                       />
                     </div>
 
@@ -1083,6 +1228,22 @@ export default function AdminDashboard() {
                       />
                     </div>
 
+                    <div className="admin-input-group admin-form-full">
+                      <ImageUploadZone
+                        currentImageUrl={clearProjectImage ? null : getImageUrl(projectForm.image)}
+                        onFileSelected={(file) => {
+                          setProjectImageFile(file);
+                          setClearProjectImage(false);
+                        }}
+                        onClear={() => {
+                          setProjectImageFile(null);
+                          setClearProjectImage(true);
+                        }}
+                        fallbackImage={fallbackProjectImage}
+                        label="Project Thumbnail"
+                      />
+                    </div>
+
                     <div className="admin-input-group admin-form-full" style={{ padding: '0.2rem 0' }}>
                       <label className="admin-checkbox-group" htmlFor="cFeatured">
                         <input 
@@ -1271,6 +1432,165 @@ export default function AdminDashboard() {
             </footer>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+function ImageUploadZone({ currentImageUrl, onFileSelected, onClear, fallbackImage, label }) {
+  const [isDragActive, setIsDragActive] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [validationError, setValidationError] = useState('');
+
+  const handleDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setIsDragActive(true);
+    } else if (e.type === "dragleave") {
+      setIsDragActive(false);
+    }
+  };
+
+  const validateAndSetFile = (file) => {
+    if (!file) return;
+    
+    // Validate type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      setValidationError("Invalid file type. Only JPG, JPEG, PNG, and WebP are allowed.");
+      return;
+    }
+    
+    // Validate size (5MB)
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      setValidationError("File is too large. Max size is 5 MB.");
+      return;
+    }
+    
+    setValidationError('');
+    onFileSelected(file);
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreviewUrl(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      validateAndSetFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      validateAndSetFile(e.target.files[0]);
+    }
+  };
+
+  const handleClear = () => {
+    setPreviewUrl(null);
+    setValidationError('');
+    onClear();
+  };
+
+  // Determine display image
+  const displayImage = previewUrl || currentImageUrl || fallbackImage;
+
+  return (
+    <div className="admin-upload-zone-wrapper" style={{ marginTop: '0.5rem', marginBottom: '0.5rem', width: '100%' }}>
+      <label className="admin-label" style={{ marginBottom: '8px', display: 'block' }}>{label}</label>
+      
+      <div 
+        className={`admin-drag-drop-zone ${isDragActive ? 'drag-active' : ''} ${validationError ? 'has-error' : ''}`}
+        onDragEnter={handleDrag}
+        onDragOver={handleDrag}
+        onDragLeave={handleDrag}
+        onDrop={handleDrop}
+        style={{
+          border: isDragActive ? '1px dashed var(--neon-blue)' : '1px dashed rgba(255,255,255,0.15)',
+          background: isDragActive ? 'rgba(0,183,255,0.05)' : 'rgba(255,255,255,0.01)',
+          padding: '1.2rem',
+          borderRadius: '8px',
+          textAlign: 'center',
+          cursor: 'pointer',
+          position: 'relative',
+          transition: 'all 0.3s ease',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '10px',
+          minHeight: '120px',
+          justifyContent: 'center',
+          width: '100%'
+        }}
+      >
+        <input 
+          type="file" 
+          id={`file-input-${label.replace(/\\s+/g, '-').toLowerCase()}`}
+          className="admin-file-input" 
+          accept=".jpg,.jpeg,.png,.webp"
+          onChange={handleFileChange}
+        />
+
+        {displayImage ? (
+          <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+            <img 
+              src={displayImage} 
+              alt="Preview" 
+              style={{ 
+                maxWidth: '100px', 
+                maxHeight: '100px', 
+                borderRadius: '6px', 
+                border: '1px solid rgba(255,255,255,0.1)',
+                boxShadow: '0 4px 10px rgba(0,0,0,0.4)',
+                objectFit: 'cover'
+              }} 
+            />
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-dark-muted)' }}>
+              Drag new file here to replace
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', color: 'var(--text-dark-muted)' }}>
+            <i className="fas fa-cloud-arrow-up" style={{ fontSize: '1.8rem', color: 'var(--neon-blue)' }}></i>
+            <div style={{ fontSize: '0.85rem', color: '#ccc' }}>Drag & drop image here or click to browse</div>
+            <div style={{ fontSize: '0.7rem' }}>Supports: JPG, JPEG, PNG, WebP (Max: 5MB)</div>
+          </div>
+        )}
+      </div>
+
+      {validationError && (
+        <div style={{ color: '#ff4a4a', fontSize: '0.8rem', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <i className="fas fa-triangle-exclamation"></i> {validationError}
+        </div>
+      )}
+
+      {(previewUrl || currentImageUrl) && (
+        <button 
+          type="button" 
+          onClick={handleClear} 
+          className="admin-btn admin-btn-danger" 
+          style={{ 
+            padding: '3px 10px', 
+            fontSize: '0.7rem', 
+            marginTop: '8px', 
+            display: 'inline-flex', 
+            alignItems: 'center', 
+            gap: '4px',
+            cursor: 'pointer' 
+          }}
+        >
+          <i className="fas fa-trash-can"></i> Remove Image
+        </button>
       )}
     </div>
   );

@@ -116,6 +116,11 @@ STATICFILES_STORAGE = (
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# The public backend URL used to build absolute media URLs when no request
+# object is available (e.g. from management commands, Celery tasks, etc.)
+# Set this env var on Render to your backend's actual hostname.
+BACKEND_URL = os.getenv('BACKEND_URL', 'http://127.0.0.1:8000').rstrip('/')
+
 # Django REST Framework Settings
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
@@ -142,6 +147,9 @@ else:
             "http://127.0.0.1:5173",
         ]
 CORS_ALLOW_CREDENTIALS = True
+# Also apply CORS headers to media file URLs so the frontend <img> tags
+# served from Vercel can load images hosted on the Render backend.
+CORS_URLS_REGEX = r'^/(api|media)/.*$'
 
 # CSRF configuration for production deployments
 env_csrf = os.getenv('CSRF_TRUSTED_ORIGINS', '')

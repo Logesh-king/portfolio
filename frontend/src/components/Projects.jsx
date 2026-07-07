@@ -1,13 +1,15 @@
 import { useRef, useState, useEffect } from 'react';
 import { useIntersection } from '../hooks/useIntersection';
+import { getImageUrl } from '../services/api';
+import { fallbackProjectImage } from '../utils/placeholders';
 
 export default function Projects({ projects }) {
-
   const sectionRef = useRef(null);
   const trackRef = useRef(null);
   const viewportRef = useRef(null);
   const [isActive, setIsActive] = useState(false);
   const [currentTranslate, setCurrentTranslate] = useState(0);
+  const [imgLoaded, setImgLoaded] = useState({});
 
   // Drag states
   const isDragging = useRef(false);
@@ -138,6 +140,19 @@ export default function Projects({ projects }) {
       className={isActive ? 'active' : ''}
       aria-label="Featured Projects Showcase"
     >
+      {/* CSS style tag for keyframe animations */}
+      <style>{`
+        @keyframes skeleton-pulse {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+        .skeleton-pulse-bg {
+          background: linear-gradient(90deg, rgba(20, 24, 41, 0.6) 25%, rgba(30, 36, 61, 0.8) 50%, rgba(20, 24, 41, 0.6) 75%);
+          background-size: 200% 100%;
+          animation: skeleton-pulse 1.5s infinite linear;
+        }
+      `}</style>
+
       <div className="projects-bg-glow" aria-hidden="true"></div>
 
       {/* Floating background backdrop icons */}
@@ -198,7 +213,7 @@ export default function Projects({ projects }) {
             {projects.map((project, idx) => {
               const tagsArray = typeof project.tags === 'string' ? project.tags.split(',').map(t => t.trim()) : (project.tags || []);
               
-              let imagePath = project.image || "/assets/images/smart_life_analyzer.png";
+              const imagePath = getImageUrl(project.image) || fallbackProjectImage;
               
               return (
                 <div
@@ -220,13 +235,36 @@ export default function Projects({ projects }) {
                     <div className="card-sweep-container" aria-hidden="true">
                       <div className="card-sweep"></div>
                     </div>
-                    <div className="project-img-wrapper">
+                    <div className="project-img-wrapper" style={{ position: 'relative', overflow: 'hidden' }}>
+                      {!imgLoaded[project.id] && (
+                        <div 
+                          className="skeleton-pulse-bg" 
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            zIndex: 2,
+                            borderRadius: '4px'
+                          }}
+                        />
+                      )}
                       <img
                         src={imagePath}
                         alt={`Dashboard preview of ${project.title}`}
                         className="project-img"
                         loading="lazy"
+                        onLoad={() => setImgLoaded(prev => ({ ...prev, [project.id]: true }))}
+                        onError={(e) => {
+                          e.target.src = fallbackProjectImage;
+                          setImgLoaded(prev => ({ ...prev, [project.id]: true }));
+                        }}
                         onDragStart={(e) => e.preventDefault()}
+                        style={{ 
+                          opacity: imgLoaded[project.id] ? 1 : 0, 
+                          transition: 'opacity 0.4s ease'
+                        }}
                       />
                     </div>
                     <h3 className="project-title">{project.title}</h3>

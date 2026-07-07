@@ -1,5 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useIntersection } from '../hooks/useIntersection';
+import { getImageUrl } from '../services/api';
+import { fallbackProfileImage } from '../utils/placeholders';
 
 export default function About({ aboutInfo }) {
   const [counts, setCounts] = useState({ projects: 0, experience: 0, passion: 0 });
@@ -50,7 +52,8 @@ export default function About({ aboutInfo }) {
 
   const heading = aboutInfo.heading;
   const bio = aboutInfo.bio;
-  const profileImg = aboutInfo.profile_image;
+  
+  const profileImg = getImageUrl(aboutInfo.profile_image) || fallbackProfileImage;
 
   return (
     <section

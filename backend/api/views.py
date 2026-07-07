@@ -82,6 +82,19 @@ class AboutInfoViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(about)
         return Response(serializer.data)
 
+    def update(self, request, *args, **kwargs):
+        if request.data.get('clear_profile_image') in ['true', True]:
+            instance = self.get_object()
+            if instance.profile_image:
+                try:
+                    if os.path.exists(instance.profile_image.path):
+                        instance.profile_image.delete(save=False)
+                except Exception:
+                    pass
+                instance.profile_image = None
+                instance.save()
+        return super().update(request, *args, **kwargs)
+
 
 class SkillViewSet(viewsets.ModelViewSet):
     queryset = Skill.objects.all()
@@ -93,6 +106,20 @@ class ProjectViewSet(viewsets.ModelViewSet):
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
     permission_classes = [IsAdminOrReadOnly]
+
+    def update(self, request, *args, **kwargs):
+        if request.data.get('clear_image') in ['true', True]:
+            instance = self.get_object()
+            if instance.image:
+                try:
+                    if os.path.exists(instance.image.path):
+                        instance.image.delete(save=False)
+                except Exception:
+                    pass
+                instance.image = None
+                instance.save()
+        return super().update(request, *args, **kwargs)
+
 
 
 class EducationViewSet(viewsets.ModelViewSet):
