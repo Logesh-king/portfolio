@@ -6,10 +6,13 @@ export default function About({ aboutInfo }) {
   const [hasAnimated, setHasAnimated] = useState(false);
   const sectionRef = useRef(null);
 
-  // Targets
-  const targetProjects = aboutInfo?.projects_completed !== undefined ? aboutInfo.projects_completed : 20;
-  const targetExperience = aboutInfo?.years_experience !== undefined ? aboutInfo.years_experience : 1;
-  const targetPassion = aboutInfo?.passion_percentage !== undefined ? aboutInfo.passion_percentage : 100;
+  if (!aboutInfo) {
+    return null;
+  }
+
+  const targetProjects = aboutInfo.projects_completed || 0;
+  const targetExperience = aboutInfo.years_experience || 0;
+  const targetPassion = aboutInfo.passion_percentage || 0;
 
   useIntersection(
     sectionRef,
@@ -33,7 +36,6 @@ export default function About({ aboutInfo }) {
 
           if (currentStep >= steps) {
             clearInterval(timer);
-            // Lock in exact final values
             setCounts({
               projects: targetProjects,
               experience: targetExperience,
@@ -46,9 +48,9 @@ export default function About({ aboutInfo }) {
     { threshold: 0.15, once: true }
   );
 
-  const heading = aboutInfo?.heading || "I AM AVAILABLE FOR FULL STACK DEVELOPMENT";
-  const bio = aboutInfo?.bio || "Hi, I'm Logesh M. A passionate Full Stack Developer dedicated to creating visually appealing, accessible, and high-performance web applications.";
-  const profileImg = aboutInfo?.profile_image || "/assets/images/profile.png";
+  const heading = aboutInfo.heading;
+  const bio = aboutInfo.bio;
+  const profileImg = aboutInfo.profile_image;
 
   return (
     <section

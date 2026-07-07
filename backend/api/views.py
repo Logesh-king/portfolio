@@ -1,5 +1,6 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from .models import AboutInfo, Skill, Project, Education, ContactMessage
 from .serializers import (
     AboutInfoSerializer, SkillSerializer, ProjectSerializer,
@@ -191,3 +192,36 @@ class ContactMessageViewSet(viewsets.ModelViewSet):
             logger.info(f"Notification email sent via Brevo to {recipient_email}")
         except Exception as e:
             logger.exception(f"Email sending failed: {e}")
+
+
+class PortfolioDataView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, *args, **kwargs):
+        about = AboutInfo.objects.first()
+        if not about:
+            about = AboutInfo.objects.create(
+                full_name="Logesh M",
+                heading="I AM AVAILABLE FOR FULL STACK DEVELOPMENT",
+                bio="Hi, I'm Logesh M. A passionate Full Stack Developer..."
+            )
+        
+        skills = Skill.objects.all()
+        projects = Project.objects.all()
+        education = Education.objects.all()
+
+        about_serializer = AboutInfoSerializer(about, context={'request': request})
+        skills_serializer = SkillSerializer(skills, many=True, context={'request': request})
+        projects_serializer = ProjectSerializer(projects, many=True, context={'request': request})
+        education_serializer = EducationSerializer(education, many=True, context={'request': request})
+
+        response = Response({
+            "about": about_serializer.data,
+            "skills": skills_serializer.data,
+            "projects": projects_serializer.data,
+            "education": education_serializer.data
+        })
+        
+        # Cache publicly for 60 seconds
+        response['Cache-Control'] = 'public, max-age=60'
+        return response

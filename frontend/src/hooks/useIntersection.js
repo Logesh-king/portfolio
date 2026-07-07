@@ -35,5 +35,5 @@ export function useIntersection(ref, callback, options = {}) {
         observer.unobserve(el);
       }
     };
-  }, [ref, options.once, options.threshold, options.rootMargin]);
+  }, [ref, ref.current, options.once, options.threshold, options.rootMargin]);
 }

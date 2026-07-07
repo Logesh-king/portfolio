@@ -1,6 +1,5 @@
 import { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
-import { fetchPortfolioData } from './services/api';
 
 // Visual components
 import Starfield from './components/Starfield';
@@ -18,25 +17,8 @@ const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 import './styles/style.css';
 
 function MainApp() {
-  const [aboutInfo, setAboutInfo] = useState(null);
-  const [skills, setSkills] = useState([]);
-  const [projects, setProjects] = useState([]);
-  const [education, setEducation] = useState([]);
   const [activeSection, setActiveSection] = useState('home');
   const location = useLocation();
-
-  useEffect(() => {
-    const loadData = async () => {
-      const data = await fetchPortfolioData();
-      if (!data.error) {
-        setAboutInfo(data.aboutInfo);
-        setSkills(data.skills);
-        setProjects(data.projects);
-        setEducation(data.education);
-      }
-    };
-    loadData();
-  }, [location]);
 
   return (
     <>
@@ -51,10 +33,6 @@ function MainApp() {
             path="/"
             element={
               <LandingPage
-                aboutInfo={aboutInfo}
-                skills={skills}
-                projects={projects}
-                education={education}
                 setActiveSection={setActiveSection}
               />
             }

@@ -2,6 +2,7 @@ import { useRef, useState, useEffect } from 'react';
 import { useIntersection } from '../hooks/useIntersection';
 
 export default function Projects({ projects }) {
+
   const sectionRef = useRef(null);
   const trackRef = useRef(null);
   const viewportRef = useRef(null);
@@ -126,58 +127,9 @@ export default function Projects({ projects }) {
     return () => window.removeEventListener('resize', handleResize);
   }, [currentTranslate]);
 
-  const defaultProjects = [
-    {
-      title: "Smart Life Analyzer",
-      description: "A premium analyzer incorporating daily mood mapping, journal entries, expense logs, visual health indexes, and AI-driven behavior insights.",
-      tags: "React, Django, PostgreSQL, AI Integration",
-      status: "Completed",
-      techs_used: "Django, React, PG, AI",
-      features: "Mood, Expense, Health, AI",
-      live_url: "https://demo.logesh.dev/analyzer",
-      github_url: "https://github.com/logesh/smart-life-analyzer",
-      is_featured: true,
-      image: "/assets/images/smart_life_analyzer.png"
-    },
-    {
-      title: "Portfolio Website",
-      description: "A premium developer portfolio featuring rich space aesthetics, interactive canvas stars, custom clip-path sidebars, and smooth layouts.",
-      tags: "HTML5, CSS3, JavaScript, Glassmorphism",
-      status: "Completed",
-      techs_used: "HTML, CSS, JS, Canvas",
-      features: "Interactive UI, Canvas, Timelines",
-      live_url: "https://logesh.dev",
-      github_url: "https://github.com/logesh/portfolio",
-      is_featured: false,
-      image: "/assets/images/portfolio_website.png"
-    },
-    {
-      title: "Weather App",
-      description: "A high-performance weather forecasting application that pulls real-time weather analytics and renders cinematic, weather-matching background gradients.",
-      tags: "React JS, OpenWeather API, CSS Grid",
-      status: "Completed",
-      techs_used: "React, REST API, Vanilla CSS",
-      features: "Search, Forecast, Dynamic BG",
-      live_url: "https://demo.logesh.dev/weather",
-      github_url: "https://github.com/logesh/weather-app",
-      is_featured: false,
-      image: "/assets/images/weather_app.png"
-    },
-    {
-      title: "Expense Tracker",
-      description: "An analytics-heavy financial app featuring customizable budget limits, smart category breakdowns, and reactive data table dashboards.",
-      tags: "React JS, Django, PostgreSQL",
-      status: "In Progress",
-      techs_used: "Django, React, PG, Chart.js",
-      features: "Limit Checks, Charts, Filters",
-      live_url: "https://demo.logesh.dev/finance",
-      github_url: "https://github.com/logesh/expense-tracker",
-      is_featured: false,
-      image: "/assets/images/expense_tracker.png"
-    }
-  ];
-
-  const listProjects = projects && projects.length > 0 ? projects : defaultProjects;
+  if (!projects || projects.length === 0) {
+    return null;
+  }
 
   return (
     <section
@@ -243,14 +195,10 @@ export default function Projects({ projects }) {
               transition: isDragging.current ? 'none' : 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
             }}
           >
-            {listProjects.map((project, idx) => {
+            {projects.map((project, idx) => {
               const tagsArray = typeof project.tags === 'string' ? project.tags.split(',').map(t => t.trim()) : (project.tags || []);
               
-              let imagePath = project.image;
-              if (!imagePath) {
-                const defaultProj = defaultProjects.find(p => p.title === project.title);
-                imagePath = defaultProj ? defaultProj.image : "/assets/images/smart_life_analyzer.png";
-              }
+              let imagePath = project.image || "/assets/images/smart_life_analyzer.png";
               
               return (
                 <div

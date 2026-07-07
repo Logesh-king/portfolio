@@ -72,6 +72,15 @@ class PortfolioAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
 
+    def test_get_portfolio_data(self):
+        url = reverse('portfolio-data')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['about']['full_name'], "Logesh M")
+        self.assertEqual(len(response.data['skills']), 1)
+        self.assertEqual(len(response.data['projects']), 1)
+        self.assertEqual(len(response.data['education']), 1)
+
     def test_submit_contact_message(self):
         url = reverse('contact-list')
         data = {

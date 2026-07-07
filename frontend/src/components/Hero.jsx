@@ -50,9 +50,13 @@ export default function Hero({ aboutInfo }) {
     }
   };
 
-  const name = aboutInfo?.full_name || "LOGESH M";
-  const bio = aboutInfo?.bio || "I'm a passionate Full Stack Developer dedicated to crafting modern, responsive, and user-friendly websites and applications. I specialize in React.js, Django, and PostgreSQL to build high-performance web systems.";
-  const resumeUrl = aboutInfo?.resume_file || "/assets/resume/Logesh_Resume.pdf";
+  if (!aboutInfo) {
+    return null;
+  }
+
+  const name = aboutInfo.full_name;
+  const bio = aboutInfo.bio;
+  const resumeUrl = aboutInfo.resume_file;
 
   return (
     <section id="home" className="hero-section" aria-label="Hero Introduction">

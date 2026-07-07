@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     AboutInfoViewSet, SkillViewSet, ProjectViewSet,
-    EducationViewSet, ContactMessageViewSet
+    EducationViewSet, ContactMessageViewSet, PortfolioDataView
 )
 
 router = DefaultRouter()
@@ -14,5 +14,6 @@ router.register(r'education', EducationViewSet, basename='education')
 router.register(r'contact', ContactMessageViewSet, basename='contact')
 
 urlpatterns = [
+    path('portfolio-data/', PortfolioDataView.as_view(), name='portfolio-data'),
     path('', include(router.urls)),
 ]

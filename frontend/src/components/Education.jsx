@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useIntersection } from '../hooks/useIntersection';
 
 export default function Education({ education }) {
@@ -15,42 +15,9 @@ export default function Education({ education }) {
     { threshold: 0.15, once: true }
   );
 
-  const defaultEducation = [
-    {
-      year_range: "2023 - 2025",
-      title: "M.Sc Computer Science",
-      institution: "Periyar University",
-      grade: "6.5 CGPA",
-      grade_label: "Graduation Index",
-      progress_offset: 35.19
-    },
-    {
-      year_range: "2020 - 2023",
-      title: "B.Sc Information Technology",
-      institution: "Karpagam University",
-      grade: "7.79 CGPA",
-      grade_label: "Graduation Index",
-      progress_offset: 25.13
-    },
-    {
-      year_range: "2019 - 2020",
-      title: "Higher Secondary (12th)",
-      institution: "State Board Academy",
-      grade: "67%",
-      grade_label: "Graduation Index",
-      progress_offset: 15.08
-    },
-    {
-      year_range: "2017 - 2018",
-      title: "Secondary School (10th)",
-      institution: "State Board Academy",
-      grade: "86%",
-      grade_label: "Graduation Index",
-      progress_offset: 10.05
-    }
-  ];
-
-  const listEducation = education && education.length > 0 ? education : defaultEducation;
+  if (!education || education.length === 0) {
+    return null;
+  }
 
   return (
     <section
@@ -65,7 +32,7 @@ export default function Education({ education }) {
         <div className="timeline-container">
           <div className="timeline-line" aria-hidden="true"></div>
 
-          {listEducation.map((item, idx) => {
+          {education.map((item, idx) => {
             const isRightAligned = idx % 2 === 0;
             return (
               <div
